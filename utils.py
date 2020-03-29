@@ -48,7 +48,7 @@ def create_input_files(in_path, out_path):
             # (2).3 ML index associates with fertilizer:
             xfile_dict[c][f].update({'fertilizer': {}})
             for i, ft in enumerate(np.unique(df_c_f['FERTILIZERS'])):
-                xfile_dict[c][f]['fertilizer'].update({ft: i})
+                xfile_dict[c][f]['fertilizer'].update({ft: i + 1})
 
     # Fill the xfile_dict with detail
     for i in range(len(df)):
@@ -99,22 +99,23 @@ def _create_xfile(out_path, crop_type, file_name, file_dict):
     # use the part of xfile_dict[c][f]'s marked INDIES' LEVEL to fill the lines in xfile
     treatments = ''
     for i, d in enumerate(details_array):
-        treatments += '{number:2d} 1 1 0 {cname:<26}{cultivar:2}  1  0  1  1  1  0  1  0  0  0  0  1\n'.format(
-            number=i + 1, cname=file_dict['ing-cname'][d['ingeno']], cultivar=file_dict['culitvar'][d['ingeno']]
+        treatments += '{number:2d} 1 1 0 {cname:<26}{cultivar:2}  1  0  1  1  1{ml:>3}  1  0  0  0  0  1\n'.format(
+            number=i + 1, cname=file_dict['ing-cname'][d['ingeno']], cultivar=file_dict['culitvar'][d['ingeno']],
+            ml=file_dict['fertilizer'][d['FERTILIZERS']]
         )
-    cultivars = ''
-    for ing, idx in file_dict['culitvar'].items():
-        cultivars += '{cultivar:2d} {abbreviation} {ingeno} {cname}\n'.format(
-            cultivar=idx, abbreviation=abbreviation[crop_type], ingeno=ing, cname=file_dict['ing-cname'][ing]
-        )
-    fertilizer = ''
-    for fts, idx in file_dict['fertilizer'].items():
-        for ft in fts.split(';'):
-            fertilizer += '{0:2d} {1:5}{2:>6}{3:>6}{4:>6}{5:>6}{6:>6}{7:>6}   -99   -99   -99 -99\n'.format(
-                int(idx), *(ft.strip().split(' '))
+        cultivars = ''
+        for ing, idx in file_dict['culitvar'].items():
+            cultivars += '{cultivar:2d} {abbreviation} {ingeno} {cname}\n'.format(
+                cultivar=idx, abbreviation=abbreviation[crop_type], ingeno=ing, cname=file_dict['ing-cname'][ing]
             )
+        fertilizer = ''
+        for fts, idx in file_dict['fertilizer'].items():
+            for ft in fts.split(';'):
+                fertilizer += '{0:2d} {1:5}{2:>6}{3:>6}{4:>6}{5:>6}{6:>6}{7:>6}   -99   -99   -99 -99\n'.format(
+                    int(idx), *(ft.strip().split(' '))
+                )
 
-    base_file = '''
+        base_file = '''
 *EXP.DETAILS: {file_name}{abbreviation} {station}{year}
 
 *GENERAL
@@ -131,11 +132,11 @@ def _create_xfile(out_path, crop_type, file_name, file_dict):
 
 *CULTIVARS
 @C CR INGENO CNAME
-{cultivars}     
+{cultivars}
 
 *FIELDS
 @L ID_FIELD WSTA....  FLSA  FLOB  FLDT  FLDD  FLDS  FLST SLTX  SLDP  ID_SOIL    FLNAME
- 1 {station}0001 {weather}   -99   -99   -99   -99   -99   -99 -99    -99  {soil} -99                       
+ 1 {station}0001 {weather:<8}   -99   -99   -99   -99   -99   -99 -99    -99  {soil:<10} -99                       
 @L ...........XCRD ...........YCRD .....ELEV .............AREA .SLEN .FLWR .SLAS FLHST FHDUR
  1             -99             -99       -99               -99   -99   -99   -99   -99   -99
 
@@ -154,42 +155,42 @@ def _create_xfile(out_path, crop_type, file_name, file_dict):
 
 *PLANTING DETAILS
 @P PDATE EDATE  PPOP  PPOE  PLME  PLDS  PLRS  PLRD  PLDP  PLWT  PAGE  PENV  PLPH  SPRL                        PLNAME     
- 1 {PDATE:5} {EDATE:5}     5     4     S     R    60     0     5   -99   -99   -99   -99   -99                        -99
+ 1 {PDATE:5} {EDATE:>5}     5     4     S     R    60     0     5   -99   -99   -99   -99   -99                        -99
 
 
 *IRRIGATION AND WATER MANAGEMENT
 @I  EFIR  IDEP  ITHR  IEPT  IOFF  IAME  IAMT IRNAME
  1     1    30    50   100 GS000 IR001    10 -99
 @I IDATE  IROP IRVAL
- 1 {PDATE:5}   -99   -99                        
+ 1 {PDATE:5} IR001   -99
 
 *FERTILIZERS (INORGANIC)
 @F FDATE  FMCD  FACD  FDEP  FAMN  FAMP  FAMK  FAMC  FAMO  FOCD FERNAME
-{fertilizer}             
+{fertilizer}
 
 *RESIDUES AND ORGANIC FERTILIZER
 @R RDATE  RCOD  RAMT  RESN  RESP  RESK  RINP  RDEP  RMET RENAME
- 1 {PDATE:5}   -99   -99   -99   -99   -99   -99   -99   -99 -99                          
+ 1 {PDATE:5}   -99   -99   -99   -99   -99   -99   -99   -99 -99
 
 *CHEMICAL APPLICATIONS
 @C CDATE CHCOD CHAMT  CHME CHDEP   CHT..CHNAME
- 1 {PDATE:5}   -99   -99   -99   -99   -99  -99                                       
+ 1 {PDATE:5}   -99   -99   -99   -99   -99  -99
 
 *TILLAGE AND ROTATIONS
 @T TDATE TIMPL  TDEP TNAME
- 1 {PDATE:5}   -99   -99 -99                                                              
+ 1 {PDATE:5}   -99   -99 -99
 
 *ENVIRONMENT MODIFICATIONS
-@E ODATE EDAY  ERAD  EMAX  EMIN  ERAIN ECO2  EDEW  EWIND ENVNAME  
- 1 {PDATE:5} A   0 A   0 A   0 A   0 A 0.0 A   0 A   0 A   0                                  
+@E ODATE EDAY  ERAD  EMAX  EMIN  ERAIN ECO2  EDEW  EWIND ENVNAME
+ 1 {PDATE:5} A   0 A   0 A   0 A   0 A 0.0 A   0 A   0 A   0
 
 *HARVEST DETAILS
 @H HDATE  HSTG  HCOM HSIZE   HPC  HBPC HNAME
- 1 {PDATE:5} GS000   -99   -99   -99   -99 Maize                                         
+ 1 {PDATE:5} GS000   -99   -99   -99   -99 Maize
 
 *SIMULATION CONTROLS
 @N GENERAL     NYERS NREPS START SDATE RSEED SNAME.................... SMODEL
- 1 GE              1     1     S {PDATE:5}  2150 DEFAULT SIMULATION CONTR  MZCER                                 
+ 1 GE              1     1     S {PDATE:5}  2150 DEFAULT SIMULATION CONTR  MZCER
 @N OPTIONS     WATER NITRO SYMBI PHOSP POTAS DISES  CHEM  TILL   CO2
  1 OP              Y     Y     N     N     N     N     N     N     M
 @N METHODS     WTHER INCON LIGHT EVAPO INFIL PHOTO HYDRO NSWIT MESOM MESEV MESOL
@@ -201,7 +202,7 @@ def _create_xfile(out_path, crop_type, file_name, file_dict):
 
 @  AUTOMATIC MANAGEMENT
 @N PLANTING    PFRST PLAST PH2OL PH2OU PH2OD PSTMX PSTMN
- 1 PL          {PDATE:5} {PDATE:5}    40   100    30    40    10                    
+ 1 PL          {PDATE:5} {PDATE:5}    40   100    30    40    10
 @N IRRIGATION  IMDEP ITHRL ITHRU IROFF IMETH IRAMT IREFF
  1 IR             30    50   100 GS000 IR001    10     1
 @N NITROGEN    NMDEP NMTHR NAMNT NCODE NAOFF
@@ -209,12 +210,15 @@ def _create_xfile(out_path, crop_type, file_name, file_dict):
 @N RESIDUES    RIPCN RTIME RIDEP
  1 RE            100     1    20
 @N HARVEST     HFRST HLAST HPCNP HPCNR
- 1 HA              0 {PDATE:5}   100     0                                      
+ 1 HA              0 {PDATE:5}   100     0
+
+
+                                     
     '''.format(file_name=file_name, abbreviation=abbreviation[crop_type], treatments=treatments,
                cultivars=cultivars, weather=weather, soil=soil, station=station, year=year,
                PDATE=pdate, PDATE_minus_1=int(pdate) - 1, EDATE=edate, fertilizer=fertilizer)
-    with open(os.path.join(out_path, file_name + suffixes[crop_type]), 'w', encoding='utf-8') as fp:
-        fp.write(base_file)
+        with open(os.path.join(out_path, file_name + suffixes[crop_type]), 'w', encoding='utf-8') as fp:
+            fp.write(base_file)
 
 
 def create_xfile(in_file, out_path, crop_type=None, file_name=None):
@@ -270,4 +274,4 @@ def create_xfile(in_file, out_path, crop_type=None, file_name=None):
 
 if __name__ == '__main__':
     # create_input_files('test.xlsx', '.')
-    create_xfile('xfile.json', './output',crop_type='maize',file_name='AUAR0601')
+    create_xfile('xfile.json', './output', crop_type='maize', file_name='AUAR0601')
