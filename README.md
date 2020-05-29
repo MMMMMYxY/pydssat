@@ -19,7 +19,7 @@ In this file, I set some default arguments for convenient._(If needed ,please ch
 The only thing that we need to concern about is formatted xlsx file.
 ![avatar](./imgs/1.png)
 ### A SIMPLE WAY:
-python run_model.py -i \PATH\TO\INPUT.xlsx -e 5000
+```python run_model.py -i \PATH\TO\INPUT.xlsx -e 5000```
 More arguments: python run_model.py --help
 ### SOME FLEXIBLE WAYS:
 You can call the functions in this project whose keyword params are set for more flexible usage.
